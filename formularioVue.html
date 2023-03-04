@@ -27,6 +27,10 @@
                 Dados cadastrados com sucesso!
             </div>
 
+            <div class="alert alert-success" role="alert" v-show="ShowSucessoEditar">
+                Dados Editados com sucesso!
+            </div>
+
             <div class="alert alert-success" role="alert" v-show="ShowDelete">
                 Dados deletado com sucesso!
             </div>
@@ -45,15 +49,15 @@
                         <label for="sexo" class="form-label">Sexo</label>
                         <div class="input-group">
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" v-model="Sexo" value="Masculino"
-                                    name="Sexo" id="flexRadioDefault1">
+                                <input class="form-check-input" type="radio" v-model="Sexo" value="1" name="Sexo"
+                                    id="flexRadioDefault1">
                                 <label class="form-check-label" for="flexRadioDefault1">
                                     Masculino
                                 </label>
                             </div>
 
                             <div class="form-check" style="margin-left: 5px;">
-                                <input class="form-check-input" type="radio" v-model="Sexo" value="Feminino" name="Sexo"
+                                <input class="form-check-input" type="radio" v-model="Sexo" value="2" name="Sexo"
                                     id="flexRadioDefault1">
                                 <label class="form-check-label" for="flexRadioDefault1">
                                     Feminino
@@ -98,7 +102,7 @@
                                 aria-describedby="nomeHelp">
                         </div>
                     </div>
-                    <div class="row">                       
+                    <div class="row">
                         <div class="col-md-4">
                             <label for="nome" class="form-label">Bairro</label>
                             <input type="text" class="form-control" id="nome" v-model="Endereco.Bairro"
@@ -111,24 +115,32 @@
                         </div>
                         <div class="col-md-4">
                             <label for="nome" class="form-label">Estado</label>
-                            
-                                <select class="form-select" v-model="Endereco.Estado">
-                                    <option selected > Selecione ...</option>
-                                    <option v-for="(estado, index) in Estados" :value="estado">{{ estado }}</option>                                    
-                                </select>
-                           
+
+                            <select class="form-select" v-model="Endereco.Estado">
+                                <option selected> Selecione ...</option>
+                                <option v-for="(estado, index) in Estados" :value="estado">{{ estado }}</option>
+                            </select>
+
                         </div>
                     </div>
 
                     <div class="text-center">
-                        <button class="btn btn-success" @click.prevent="Enviar"
-                            style="width: 80px; margin-top: 8px;">Salvar</button>
+                        <div v-show="!Editando">
+                            <button class="btn btn-success" @click.prevent="Enviar"
+                                style="width: 80px; margin-top: 8px;">Salvar</button>
+                        </div>
+
+                        <div v-show="Editando">
+                            <button class="btn btn-success" @click.prevent="EnviarEdicao"
+                                style="width: 80px; margin-top: 8px;">Salvar</button>
+                        </div>
                     </div>
                 </div>
             </form>
         </div>
 
-        <div v-show="ShowListarCadastro" class="mt-5">
+        <!-- <div v-show="ShowListarCadastro" class="mt-5"> -->
+        <div class="mt-5">
             <table class="table">
                 <thead>
                     <tr>
@@ -151,6 +163,14 @@
                         <td>{{ pessoa.Celular }}</td>
                         <td>{{ MontarEndereco(pessoa) }}</td>
                         <td>
+                            <a @click="Editar(index)" style="cursor: pointer;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                    class="bi bi-pencil-fill" viewBox="0 0 16 16" style="color: blue;">
+                                    <path
+                                        d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z" />
+                                </svg>
+                            </a>
+
                             <a @click="Deletar(index)" style="cursor: pointer;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
                                     class="bi bi-trash-fill" viewBox="0 0 16 16" style="color: red;">
@@ -172,9 +192,12 @@
                     ShowFormulario: true,
                     ShowListarCadastro: false,
                     ShowSucesso: false,
+                    ShowSucessoEditar: false,
                     ShowErro: false,
                     ShowDelete: false,
+                    Editando: false,
                     Pessoa: [],
+                    Codigo: '',
                     Nome: '',
                     Sexo: '',
                     DataNascimento: '',
@@ -220,6 +243,15 @@
                 }
             },
             methods: {
+                Setup() {
+                    const self = this
+
+                    fetch('https://localhost:44318/Cadastro/Cadastros')
+                        .then(response => response.json())
+                        .then(data => self.Pessoa = data)
+                        .catch(error => console.error(error));
+
+                },
                 Enviar() {
                     const self = this
                     let pessoa = {
@@ -235,7 +267,7 @@
                             Bairro: self.Endereco.Bairro,
                             Cidade: self.Endereco.Cidade,
                             Estado: self.Endereco.Estado
-                        }                        
+                        }
                     }
 
                     if (pessoa.Nome == '' && pessoa.Sexo == '' && pessoa.DataNascimento == '' && pessoa.CPF == '' && pessoa.Telefone == '' && pessoa.Celular == ''
@@ -247,20 +279,58 @@
 
                     self.ShowListarCadastro = true
                     self.Pessoa.push(pessoa)
+                    self.EnviarApi()
                     self.LimparModels()
 
                     self.ShowSucesso = true
-                    self.FecharModal()                   
+                    self.FecharModal()
                 },
                 Deletar(index) {
                     const self = this
-                    const endereco = self.Pessoa.Endereco
                     self.Pessoa.splice(index, 1)
 
                     if (self.Pessoa.length == 0)
                         self.ShowListarCadastro = false
 
                     self.ShowDelete = true
+                    self.FecharModal()
+                },
+                Editar(index) {
+                    const self = this
+                    self.Editando = true
+
+                    self.Codigo = index
+                    self.Nome = self.Pessoa[index].Nome
+                    self.Sexo = self.Pessoa[index].Sexo
+                    self.DataNascimento = self.Pessoa[index].DataNascimento
+                    self.CPF = self.Pessoa[index].CPF
+                    self.Telefone = self.Pessoa[index].Telefone
+                    self.Celular = self.Pessoa[index].Celular
+                    self.Endereco.Logradouro = self.Pessoa[index].Endereco.Logradouro
+                    self.Endereco.Numero = self.Pessoa[index].Endereco.Numero
+                    self.Endereco.Bairro = self.Pessoa[index].Endereco.Bairro
+                    self.Endereco.Cidade = self.Pessoa[index].Endereco.Cidade
+                    self.Endereco.Estado = self.Pessoa[index].Endereco.Estado
+                },
+                EnviarEdicao() {
+                    const self = this
+                    const index = self.Codigo
+
+                    self.Pessoa[index].Nome = self.Nome
+                    self.Pessoa[index].Sexo = self.Sexo
+                    self.Pessoa[index].DataNascimento = self.DataNascimento
+                    self.Pessoa[index].CPF = self.CPF
+                    self.Pessoa[index].Telefone = self.Telefone
+                    self.Pessoa[index].Celular = self.Celular
+                    self.Pessoa[index].Endereco.Logradouro = self.Endereco.Logradouro
+                    self.Pessoa[index].Endereco.Numero = self.Endereco.Numero
+                    self.Pessoa[index].Endereco.Bairro = self.Endereco.Bairro
+                    self.Pessoa[index].Endereco.Cidade = self.Endereco.Cidade
+                    self.Pessoa[index].Endereco.Estado = self.Endereco.Estado
+
+                    self.LimparModels()
+                    self.ShowSucessoEditar = true
+                    self.EnviarApi()
                     self.FecharModal()
                 },
                 MontarEndereco(pessoa) {
@@ -289,11 +359,48 @@
 
                     setTimeout(() => {
                         self.ShowSucesso = false
+                        self.ShowSucessoEditar = false
                         self.ShowErro = false
                         self.ShowDelete = false
                     }, 2000)
+                },
+                EnviarApi() {
+                    const self = this
+                    const dataDeNascimento = new Date(self.DataNascimento);
+
+                    const data = {
+                        nome: self.Nome,
+                        dataNascimento: dataDeNascimento,
+                        cpf: self.CPF,
+                        celular: self.Celular,
+                        telefone: self.Telefone,
+                        logradouro: self.Endereco.Logradouro,
+                        numero: self.Endereco.Numero,
+                        bairro: self.Endereco.Bairro,
+                        cidade: self.Endereco.Cidade,
+                        estado: self.Endereco.Estado,
+                        sexo: parseInt(self.Sexo)
+                    }
+
+                    fetch('https://localhost:44318/Cadastro/Cadastrar', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log(data);
+                        })
+                        .catch(error => {
+                            console.error(error);
+                        });
                 }
             },
+            mounted() {
+               this.Setup()
+            }
 
         }
 
